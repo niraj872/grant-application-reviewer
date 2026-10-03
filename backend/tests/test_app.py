@@ -59,3 +59,89 @@ def test_demo_seed_and_health(client):
     assert client.get("/api/health").json() == {"status": "ok"}
     s = client.post("/api/demo").json(); m = s["completion"]["mandatory"]
     assert m["complete"] == 5 and m["percent"] == 62.5 and m["weak"] == 1 and s["supporting_documents"]["provided"] == 3
+def test_assessment_detail_contains_review_state(client):
+    _, _, s = setup(client)
+
+    assessment = client.get(
+        f"/api/assessments/{s['assessment_id']}"
+    )
+
+    assert assessment.status_code == 200
+
+    data = assessment.json()
+
+    assert data["assessment_id"] == s["assessment_id"]
+    assert "status" in data
+    assert "completion" in data
+    assert "supporting_documents" in data
+
+
+def test_confirmed_review_updates_summary(client):
+    _, _, s = setup(client)
+
+    reqs = client.get(
+        f"/api/assessments/{s['assessment_id']}/requirements"
+    ).json()
+
+    target = next(
+        r for r in reqs
+        if r["ai_status"] == "satisfied"
+    )
+
+    response = client.patch(
+        f"/api/mappings/{target['id']}",
+        json={"decision": "confirm"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["review_state"] == "confirmed"
+
+    summary = client.get(
+        f"/api/assessments/{s['assessment_id']}/summary"
+    ).json()
+
+    assert summary["status"] == "in_review"
+    assert summary["completion"]["mandatory"]["satisfied"] >= 1
+def test_assessment_detail_contains_review_state(client):
+    _, _, s = setup(client)
+
+    assessment = client.get(
+        f"/api/assessments/{s['assessment_id']}"
+    )
+
+    assert assessment.status_code == 200
+
+    data = assessment.json()
+
+    assert data["assessment_id"] == s["assessment_id"]
+    assert "status" in data
+    assert "completion" in data
+    assert "supporting_documents" in data
+
+
+def test_confirmed_review_updates_summary(client):
+    _, _, s = setup(client)
+
+    reqs = client.get(
+        f"/api/assessments/{s['assessment_id']}/requirements"
+    ).json()
+
+    target = next(
+        r for r in reqs
+        if r["ai_status"] == "satisfied"
+    )
+
+    response = client.patch(
+        f"/api/mappings/{target['id']}",
+        json={"decision": "confirm"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["review_state"] == "confirmed"
+
+    summary = client.get(
+        f"/api/assessments/{s['assessment_id']}/summary"
+    ).json()
+
+    assert summary["status"] == "in_review"
+    assert summary["completion"]["mandatory"]["satisfied"] >= 1
